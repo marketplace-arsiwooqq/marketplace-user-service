@@ -1,0 +1,56 @@
+package com.arsiwooqq.userservice.controller;
+
+import com.arsiwooqq.userservice.dto.ApiResponse;
+import com.arsiwooqq.userservice.dto.CardCreateRequest;
+import com.arsiwooqq.userservice.dto.CardResponse;
+import com.arsiwooqq.userservice.service.CardService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/v1/cards")
+@RequiredArgsConstructor
+public class CardController {
+    private final CardService cardService;
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or @securityService.canCreateCard(authentication.principal, #request)")
+    public ResponseEntity<ApiResponse<CardResponse>> create(@RequestBody @Valid CardCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.success("Card created successfully", cardService.create(request))
+        );
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.canAccessCard(authentication.principal, #id)")
+    public ResponseEntity<ApiResponse<CardResponse>> getById(@PathVariable("id") UUID id) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Card successfully found", cardService.getById(id))
+        );
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Page<CardResponse>>> getAllPaged(Pageable pageable) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Page of cards successfully formed", cardService.getAllPaged(pageable))
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.canAccessCard(authentication.principal, #id)")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable("id") UUID id) {
+        cardService.delete(id);
+        return ResponseEntity.ok(
+                ApiResponse.success("Card successfully deleted")
+        );
+    }
+}

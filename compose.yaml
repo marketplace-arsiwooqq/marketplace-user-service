@@ -1,0 +1,49 @@
+services:
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: arsiwooqq/user-service
+    depends_on:
+      - user-service-db
+      - user-service-redis
+    networks:
+      - backend-net
+      - user-service-net
+    environment:
+      - SPRING_SECONDARY_PROFILE=dev
+      - DB_HOST=user-service-db
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - REDIS_HOST=user-service-redis
+      - EUREKA_URL=http://discovery-service:8761/eureka/
+
+  user-service-db:
+    image: postgres:15
+    volumes:
+      - user-service-postgres-data:/var/lib/postgresql/data
+    networks:
+      - user-service-net
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+
+  user-service-redis:
+    image: redis:7
+    volumes:
+      - user-service-redis-data:/data
+    networks:
+      - user-service-net
+    command: redis-server --appendonly yes
+
+volumes:
+  user-service-postgres-data: {}
+  user-service-redis-data: {}
+
+networks:
+  backend-net:
+    external: true
+  user-service-net:
+    driver: bridge

@@ -1,0 +1,47 @@
+package com.arsiwooqq.userservice.repository;
+
+import com.arsiwooqq.userservice.entity.Card;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public interface CardRepository extends JpaRepository<Card, UUID> {
+
+    boolean existsByNumber(String number);
+
+    // redundant methods only to follow the task requirements
+
+    @Query("from Card c where c.id = :id")
+    Optional<Card> findCardById(UUID id);
+
+    @Modifying
+    @Query(value = """
+                UPDATE card_info
+                SET user_id = :userId, number = :number, holder = :holder, expiration_date = :expirationDate
+                WHERE id = :id
+            """, nativeQuery = true)
+    void update(UUID id, UUID userId, String number, String holder, LocalDate expirationDate);
+
+    @Modifying
+    @Query(value = """
+                delete from Card c
+                where c.id = :id
+            """)
+    void delete(UUID id);
+
+    @Query("select c.id from Card c")
+    Page<UUID> findCardIds(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"user"})
+    @Query("select c from Card c where c.id in :ids")
+    List<Card> findAllWithUsersByIds(@Param("ids") List<UUID> ids);
+}
